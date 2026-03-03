@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tile Matching Game V0.01</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --primary-color: #4a90e2;
+            --cell-bg: #ffffff;
+            --selected-bg: #4a90e2;
+            --selected-text: #ffffff;
+            --matched-color: #aaa;
+            --matched-bg: #e8e8e8;
+            --line-color: #ff5722;
+            --grid-gap: 10px;
+            --cols: 6;
+            --shadow-depth: 5px;
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --highlight-color: rgba(255, 255, 255, 0.7);
+            --shadow-dark: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
+            padding: 10px;
+            touch-action: manipulation;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            box-sizing: border-box;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+            max-width: 800px;
+            flex: 1;
+            padding-top: 0;
+        }
+        
+        /* 广告容器 */
+        .ad-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px solid #ddd;
+            z-index: 1000;
+        }
+        
+        /* 电脑版隐藏广告区 */
+        @media (min-width: 769px) {
+            .ad-container {
+                display: none !important;
+            }
+        }
+        
+        /* 手机版显示广告区 */
+        @media (max-width: 768px) {
+            .ad-container {
+                display: flex !important;
+            }
+        }
+
+        h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 1px;
+            line-height: 1;
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 10px;
+            font-size: 0.6rem;
+            color: #555;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 6px 10px;
+            border-radius: 8px;
+            box-shadow: 
+                0 2px 6px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: #777;
+            margin-right: 5px;
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 0.6rem;
+            color: #333;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            margin: 20px 0 10px;
+        }
+
+        button {
+            background: linear-gradient(to bottom, #4a90e2, #357abd);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 
+                0 4px 8px rgba(74, 144, 226, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 12px rgba(74, 144, 226, 0.4),
+                0 3px 6px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 
+                0 2px 4px rgba(74, 144, 226, 0.3),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-area {
+            position: relative;
+            max-width: 800px;
+            width: 100%;
+            background: linear-gradient(to bottom, #d0d0d0, #b8b8b8);
+            padding: var(--grid-gap);
+            border-radius: 16px;
+            box-sizing: border-box;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 0 auto;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(var(--cols), 1fr);
+            gap: var(--grid-gap);
+            width: 100%;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            position: relative;
+            z-index: 1;
+            box-shadow: 
+                0 5px 10px rgba(0, 0, 0, 0.1),
+                inset 0 -2px 5px rgba(0, 0, 0, 0.05),
+                inset 0 2px 5px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1));
+            border-radius: 10px;
+            z-index: -1;
+        }
+
+        .cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 15px rgba(0, 0, 0, 0.15),
+                inset 0 -2px 5px rgba(0, 0, 0, 0.05),
+                inset 0 2px 5px rgba(255, 255, 255, 0.9);
+        }
+
+        .cell.selected {
+            background: linear-gradient(145deg, #4a90e2, #3a7bc8);
+            color: white;
+            box-shadow: 
+                0 0 0 3px rgba(74, 144, 226, 0.5),
+                0 8px 15px rgba(74, 144, 226, 0.3),
+                inset 0 -2px 5px rgba(0, 0, 0, 0.2),
+                inset 0 2px 5px rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            transform: scale(1.02);
+        }
+
+        .cell.matched {
+            color: transparent;
+            background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
+            box-shadow: 
+                inset 0 2px 5px rgba(0, 0, 0, 0.1),
+                inset 0 -2px 5px rgba(0, 0, 0, 0.05);
+            cursor: default;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+            pointer-events: none;
+        }
+        
+        #svg-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        }
+        
+        .connector-line {
+            stroke: var(--line-color);
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            transition: all 0.3s;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+        }
+        
+        .line-animation {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 0.25s linear forwards;
+        }
+        
+        @keyframes drawLine {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s;
+            box-shadow: 
+                0 0 0 3px rgba(255, 100, 100, 0.7),
+                0 8px 15px rgba(255, 100, 100, 0.3) !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) translateY(-2px); }
+            20%, 60% { transform: translateX(-5px) translateY(-2px); }
+            40%, 80% { transform: translateX(5px) translateY(-2px); }
+        }
+
+        .win-message {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.2rem;
+            display: none;
+            z-index: 100;
+            text-align: center;
+            backdrop-filter: blur(3px);
+        }
+        
+        .win-message div:first-child {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+        
+        .win-message button {
+            margin-top: 30px;
+            background: linear-gradient(to bottom, #4cd964, #3ac653);
+            font-size: 1.5rem;
+            padding: 12px 30px;
+            border-radius: 10px;
+            box-shadow: 
+                0 6px 15px rgba(76, 217, 100, 0.4),
+                0 3px 8px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+        
+        .win-message button:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 20px rgba(76, 217, 100, 0.5),
+                0 4px 10px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .final-time {
+            font-size: 1.8rem;
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        @media (max-width: 450px) {
+            :root { --grid-gap: 6px; }
+            .cell { 
+                font-size: 1.4rem; 
+                border-radius: 8px;
+            }
+            h1 { font-size: 2rem; }
+            .game-stats { 
+                font-size: 1rem; 
+                margin-bottom: 15px;
+                padding: 10px 12px;
+            }
+            .stat-value { font-size: 1.2rem; }
+            body { 
+                padding: 15px 10px 100px; /* 为广告预留80px空间 */
+            }
+            .stat-label { font-size: 0.75rem; }
+            .win-message div:first-child {
+                font-size: 1.8rem;
+            }
+            .final-time {
+                font-size: 1.5rem;
+            }
+            /* 调整手机版道具位置到广告上方 */
+            .controls {
+                position: fixed;
+                bottom: 90px; /* 广告上方 */
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: center;
+                margin-top: 0;
+                padding: 10px;
+                background-color: rgba(255, 255, 255, 0.9);
+                border-top: 1px solid #ddd;
+            }
+            .controls button {
+                margin: 0 5px;
+                font-size: 0.9rem;
+                padding: 8px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Tile Matching Game</h1>
+        
+        <div class="game-stats">
+            <div class="stat-box">
+                <div class="stat-label">time:</div>
+                <div class="stat-value" id="time">00:00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">分数:</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">最高分:</div>
+                <div class="stat-value" id="highScore">0</div>
+            </div>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <svg id="svg-overlay"></svg>
+            <div class="grid-container" id="gameGrid"></div>
+        </div>
+
+        <div class="controls" style="margin-top: 20px;">
+            <button onclick="restartGame()">重新开始</button>
+            <button onclick="resetItems()" style="margin-left: 10px;">重置</button>
+            <button onclick="useBomb()" style="margin-left: 10px;">炸弹 <span id="bombCount">2</span></button>
+        </div>
+    </div>
+
+    <div class="win-message" id="winModal">
+        <div>🎉 YOU WIN! 🎉</div>
+        <div class="final-time">Time: <span id="finalTime">00:00</span></div>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+
+    <script>
+        const gridElement = document.getElementById('gameGrid');
+        const timeElement = document.getElementById('time');
+        const bestTimeElement = document.getElementById('bestTime');
+        const winModal = document.getElementById('winModal');
+        const finalTimeElement = document.getElementById('finalTime');
+        const svgOverlay = document.getElementById('svg-overlay');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        
+        // 游戏配置
+        let COLS = 6;
+        let ROWS = 6;
+        let TOTAL_CELLS = COLS * ROWS;
+        
+        // 检测设备类型并设置网格大小
+        function setGridSizeByDevice() {
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                COLS = 6;
+                ROWS = 10;
+            } else {
+                COLS = 16;
+                ROWS = 8;
+            }
+            TOTAL_CELLS = COLS * ROWS;
+            // 更新CSS变量
+            document.documentElement.style.setProperty('--cols', COLS);
+        }
+        
+        // Emoji分类
+        const emojiCategories = {
+            fruits: ['🍎', '🍊', '🍋', '🍇', '🍉'],
+            animals: ['🐶', '🐱', '🐭', '🐹', '🐰'],
+            food: ['🍕', '🍔', '🍟', '🌭', '🍿'],
+            ocean: ['🐟', '🐙', '🦀', '🐚', '🌊'],
+            space: ['🚀', '🛸', '🌟', '🪐', '👽'],
+            fantasy: ['🧙‍♂️', '🧚‍♀️', '🐉', '🏰', '💎'],
+            dinosaur: ['🦕', '🦖', '🥚', '🌋', '🌿'],
+            random: [] // 随机混合所有emoji
+        };
+        
+        // 生成随机混合emoji
+        emojiCategories.random = Object.values(emojiCategories)
+            .filter(cat => cat.length > 0)
+            .flat();
+        
+        // 游戏状态
+        let gameData = [];
+        let selectedIndex = null;
+        let matchedCount = 0;
+        let connectionTimeout = null;
+        let bestTime = null;
+        let startTime = null;
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+        let currentCategory = 'fruits'; // 默认从水果系列开始
+        let currentDifficulty = 1; // 1-8，对应8个分类
+        let bombs = 2; // 初始炸弹数量
+        let score = 0; // 当前分数
+        let highScore = 0; // 最高分
+        
+        // 分类顺序，对应难度级别
+        const categoryOrder = ['fruits', 'animals', 'food', 'ocean', 'space', 'fantasy', 'dinosaur', 'random'];
+        
+        // 根据难度设置emoji种类数量
+        const getEmojiCountByDifficulty = (difficulty) => {
+            switch(difficulty) {
+                case 1: return 8; // 入门
+                case 2: return 12; // 简单
+                case 3: return 16; // 中等
+                case 4: return 20; // 困难
+                default: return 8;
+            }
+        };
+
+        // Format time to MM:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Load best time from localStorage
+        function loadBestTime() {
+            const savedTime = localStorage.getItem('tenBestTime');
+            if (savedTime) {
+                bestTime = parseInt(savedTime);
+                bestTimeElement.textContent = formatTime(bestTime);
+            } else {
+                bestTimeElement.textContent = '--:--';
+            }
+        }
+
+        // Save best time to localStorage
+        function saveBestTime(seconds) {
+            if (bestTime === null || seconds < bestTime) {
+                bestTime = seconds;
+                localStorage.setItem('tenBestTime', bestTime);
+                bestTimeElement.textContent = formatTime(bestTime);
+                return true;
+            }
+            return false;
+        }
+
+        // 加载最高分
+        function loadHighScore() {
+            const savedScore = localStorage.getItem('tileMatchingHighScore');
+            if (savedScore) {
+                highScore = parseInt(savedScore);
+                highScoreElement.textContent = highScore;
+            } else {
+                highScore = 0;
+                highScoreElement.textContent = '0';
+            }
+        }
+
+        // 保存最高分
+        function saveHighScore(newScore) {
+            if (newScore > highScore) {
+                highScore = newScore;
+                localStorage.setItem('tileMatchingHighScore', highScore);
+                highScoreElement.textContent = highScore;
+                return true;
+            }
+            return false;
+        }
+
+        function initGame() {
+            // 设置网格大小
+            setGridSizeByDevice();
+            
+            gridElement.innerHTML = '';
+            svgOverlay.innerHTML = '';
+            gameData = [];
+            selectedIndex = null;
+            matchedCount = 0;
+            elapsedSeconds = 0;
+            score = 0; // 重置分数
+            winModal.style.display = 'none';
+            clearTimeout(connectionTimeout);
+            bombs = 2; // 重置炸弹数量
+            
+            // Reset timer
+            if (timerInterval) clearInterval(timerInterval);
+            startTime = Date.now();
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Update displays
+            timeElement.textContent = '00:00';
+            scoreElement.textContent = '0';
+            
+            // Load high score
+            loadHighScore();
+
+            // 根据难度级别选择对应的emoji分类
+            currentCategory = categoryOrder[currentDifficulty - 1];
+            
+            // 生成emoji对
+            const availableEmojis = [...emojiCategories[currentCategory]];
+            
+            // 确保有足够的emoji来填充网格
+            let selectedEmojis = availableEmojis;
+            if (availableEmojis.length * 2 < TOTAL_CELLS) {
+                // 如果emoji数量不足，重复使用
+                while (selectedEmojis.length * 2 < TOTAL_CELLS) {
+                    selectedEmojis = [...selectedEmojis, ...availableEmojis];
+                }
+            }
+            
+            // 生成配对
+            const pairs = [];
+            while (pairs.length < TOTAL_CELLS) {
+                const randomEmoji = selectedEmojis[Math.floor(Math.random() * selectedEmojis.length)];
+                pairs.push(randomEmoji, randomEmoji);
+            }
+
+            // 打乱配对
+            for (let i = pairs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+            }
+
+            // 生成游戏数据
+            gameData = pairs.map((val, index) => ({
+                id: index,
+                value: val,
+                cleared: false,
+                row: Math.floor(index / COLS),
+                col: index % COLS
+            }));
+
+            // 创建单元格
+            gameData.forEach((item, index) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.textContent = item.value;
+                cell.dataset.index = index;
+                cell.addEventListener('click', () => handleCellClick(index));
+                gridElement.appendChild(cell);
+            });
+            
+            // 更新道具显示
+            update道具Display();
+            
+            // 初始化DOM元素缓存
+            initCellsCache();
+        }
+        
+        function update道具Display() {
+            // 更新炸弹数量显示
+            const bombCountElement = document.getElementById('bombCount');
+            if (bombCountElement) {
+                bombCountElement.textContent = bombs;
+            }
+        }
+        
+        // 重置功能：不改變原有的方塊位置僅重新放置剩餘物件
+        function resetItems() {
+            // 收集未匹配的emoji
+            const remainingEmojis = [];
+            gameData.forEach(item => {
+                if (!item.cleared) {
+                    remainingEmojis.push(item.value);
+                }
+            });
+            
+            // 打乱剩余emoji
+            for (let i = remainingEmojis.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [remainingEmojis[i], remainingEmojis[j]] = [remainingEmojis[j], remainingEmojis[i]];
+            }
+            
+            // 重新分配emoji
+            let emojiIndex = 0;
+            gameData.forEach(item => {
+                if (!item.cleared) {
+                    item.value = remainingEmojis[emojiIndex];
+                    emojiIndex++;
+                }
+            });
+            
+            // 更新UI
+            gameData.forEach((item, index) => {
+                if (!item.cleared && cellsCache[index]) {
+                    cellsCache[index].textContent = item.value;
+                }
+            });
+        }
+        
+        // 炸弹功能：隨機消失兩個一樣的物件
+        function useBomb() {
+            if (bombs <= 0) return;
+            
+            // 收集未匹配的emoji及其索引
+            const availableItems = [];
+            gameData.forEach((item, index) => {
+                if (!item.cleared) {
+                    availableItems.push({ index, value: item.value });
+                }
+            });
+            
+            if (availableItems.length < 2) return;
+            
+            // 找到有重复的emoji
+            const valueCount = {};
+            availableItems.forEach(item => {
+                if (valueCount[item.value]) {
+                    valueCount[item.value]++;
+                } else {
+                    valueCount[item.value] = 1;
+                }
+            });
+            
+            // 找到有重复的emoji值
+            const duplicateValues = Object.keys(valueCount).filter(value => valueCount[value] >= 2);
+            if (duplicateValues.length === 0) return;
+            
+            // 随机选择一个重复的emoji值
+            const targetValue = duplicateValues[Math.floor(Math.random() * duplicateValues.length)];
+            
+            // 找到该值的两个实例
+            const targetItems = availableItems.filter(item => item.value === targetValue).slice(0, 2);
+            if (targetItems.length < 2) return;
+            
+            // 标记为已匹配
+            const idx1 = targetItems[0].index;
+            const idx2 = targetItems[1].index;
+            handleMatchSuccess(idx1, idx2);
+            
+            // 减少炸弹数量
+            bombs--;
+            update道具Display();
+        }
+
+        function updateTimer() {
+            elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            timeElement.textContent = formatTime(elapsedSeconds);
+        }
+
+        function handleCellClick(index) {
+            clearTimeout(connectionTimeout);
+            svgOverlay.innerHTML = '';
+            const clickedData = gameData[index];
+
+            if (clickedData.cleared) return;
+
+            if (selectedIndex === null) {
+                selectedIndex = index;
+                if (cellsCache[index]) {
+                    cellsCache[index].classList.add('selected');
+                }
+            } 
+            else if (selectedIndex === index) {
+                if (cellsCache[index]) {
+                    cellsCache[index].classList.remove('selected');
+                }
+                selectedIndex = null;
+            }
+            else {
+                const prevIndex = selectedIndex;
+                const prevData = gameData[prevIndex];
+                
+                // 直接处理路径查找和绘制，不使用requestAnimationFrame
+                const path = findPath(prevData, clickedData);
+
+                if (path) {
+                    drawAnimatedPath(path, prevIndex, index);
+                } else {
+                    if (cellsCache[index]) {
+                        shakeCell(cellsCache[index]);
+                    }
+                }
+            }
+        }
+
+        function handleMatchSuccess(idx1, idx2) {
+            gameData[idx1].cleared = true;
+            gameData[idx2].cleared = true;
+            
+            // 增加分数
+            score += 10; // 每次匹配加10分
+            scoreElement.textContent = score;
+            
+            // 等待動畫完成後再一起消失
+            setTimeout(() => {
+                // 使用缓存的DOM元素
+                if (cellsCache[idx1]) {
+                    cellsCache[idx1].classList.remove('selected');
+                    cellsCache[idx1].classList.add('matched');
+                }
+                if (cellsCache[idx2]) {
+                    cellsCache[idx2].classList.add('matched');
+                }
+                svgOverlay.innerHTML = '';
+                
+                matchedCount += 2;
+                selectedIndex = null;
+                checkWin();
+            }, 250); // 與動畫時間一致
+        }
+
+        function drawAnimatedPath(pathPoints, idx1, idx2) {
+            if (!pathPoints || pathPoints.length < 2) return;
+
+            const gameAreaRect = document.getElementById('gameArea').getBoundingClientRect();
+            
+            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap')) || 10;
+            const refCell = cellsCache[0];
+            const cellW = refCell.offsetWidth;
+            const cellH = refCell.offsetHeight;
+            const padding = gap;
+
+            function getGridCenter(row, col) {
+                const left = padding + col * (cellW + gap);
+                const top = padding + row * (cellH + gap);
+                return { x: left + cellW / 2, y: top + cellH / 2 };
+            }
+
+            let finalPoints = [];
+
+            const startGrid = pathPoints[0];
+            const nextGrid = pathPoints[1];
+            
+            let pStart;
+            if (startGrid.id !== -1 && cellsCache[startGrid.id]) {
+                const rect = cellsCache[startGrid.id].getBoundingClientRect();
+                pStart = {
+                    x: rect.left - gameAreaRect.left + rect.width / 2,
+                    y: rect.top - gameAreaRect.top + rect.height / 2
+                };
+            } else {
+                pStart = getGridCenter(startGrid.row, startGrid.col);
+            }
+
+            if (nextGrid.col !== startGrid.col) {
+                const dir = nextGrid.col > startGrid.col ? 1 : -1;
+                pStart.x += dir * (cellW / 2);
+                const pNextCenter = getGridCenter(nextGrid.row, nextGrid.col);
+                pStart.y = pNextCenter.y; 
+            } else {
+                const dir = nextGrid.row > startGrid.row ? 1 : -1;
+                pStart.y += dir * (cellH / 2);
+                const pNextCenter = getGridCenter(nextGrid.row, nextGrid.col);
+                pStart.x = pNextCenter.x;
+            }
+            finalPoints.push(pStart);
+
+            for (let i = 1; i < pathPoints.length - 1; i++) {
+                const prevGrid = pathPoints[i-1];
+                const currGrid = pathPoints[i];
+                const nextGrid = pathPoints[i+1];
+
+                const pPrevCenter = getGridCenter(prevGrid.row, prevGrid.col);
+                const pCurrCenter = getGridCenter(currGrid.row, currGrid.col);
+                const pNextCenter = getGridCenter(nextGrid.row, nextGrid.col);
+                
+                const pPrevEnd = finalPoints[finalPoints.length - 1];
+
+                let cx, cy;
+                
+                if (prevGrid.col === currGrid.col) {
+                    cx = pPrevEnd.x;
+                } else {
+                    cx = pCurrCenter.x;
+                }
+
+                if (prevGrid.row === currGrid.row) {
+                    cy = pPrevEnd.y;
+                } else {
+                    cy = pCurrCenter.y;
+                }
+
+                finalPoints.push({ x: cx, y: cy });
+            }
+
+            const endGrid = pathPoints[pathPoints.length - 1];
+            const prevGrid = pathPoints[pathPoints.length - 2];
+            
+            let pEnd;
+            if (endGrid.id !== -1 && cellsCache[endGrid.id]) {
+                const rect = cellsCache[endGrid.id].getBoundingClientRect();
+                pEnd = {
+                    x: rect.left - gameAreaRect.left + rect.width / 2,
+                    y: rect.top - gameAreaRect.top + rect.height / 2
+                };
+            } else {
+                pEnd = getGridCenter(endGrid.row, endGrid.col);
+            }
+
+            const pPrevCenter = getGridCenter(prevGrid.row, prevGrid.col);
+            if (endGrid.col !== prevGrid.col) {
+                const dir = endGrid.col > prevGrid.col ? 1 : -1;
+                pEnd.x -= dir * (cellW / 2);
+                pEnd.y = pPrevCenter.y;
+            } else {
+                const dir = endGrid.row > prevGrid.row ? 1 : -1;
+                pEnd.y -= dir * (cellH / 2);
+                pEnd.x = pPrevCenter.x;
+            }
+            finalPoints.push(pEnd);
+
+            const svgPointsStr = finalPoints.map(p => `${Math.round(p.x)},${Math.round(p.y)}`).join(' ');
+            
+            const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            polyline.classList.add('connector-line', 'line-animation');
+            polyline.setAttribute('points', svgPointsStr);
+            svgOverlay.appendChild(polyline);
+
+            // 檢查是否是相同的emoji
+            const cellsArray = document.querySelectorAll('.cell');
+            const prevData = gameData[idx1];
+            const clickedData = gameData[idx2];
+            
+            if (prevData.value === clickedData.value) {
+                handleMatchSuccess(idx1, idx2);
+            } else {
+                // 如果不是相同的emoji，顯示錯誤動畫
+                setTimeout(() => {
+                    svgOverlay.innerHTML = '';
+                    cellsArray[idx1].classList.remove('selected');
+                    selectedIndex = null;
+                    shakeCell(cellsArray[idx1]);
+                    shakeCell(cellsArray[idx2]);
+                }, 500);
+            }
+        }
+
+        function shakeCell(cellElement) {
+            cellElement.classList.add('shake');
+            setTimeout(() => {
+                cellElement.classList.remove('shake');
+            }, 400);
+        }
+
+        // 缓存DOM元素
+        let cellsCache = [];
+        
+        // 初始化缓存
+        function initCellsCache() {
+            cellsCache = Array.from(document.querySelectorAll('.cell'));
+        }
+        
+        // --- Path finding (optimized) ---
+        function isPassable(r, c, targetData) {
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+            const idx = r * COLS + c;
+            const cellData = gameData[idx];
+            return cellData.cleared || idx === targetData.id;
+        }
+
+        function checkLine(r1, c1, r2, c2, targetData) {
+            if (r1 === r2) { 
+                const start = Math.min(c1, c2);
+                const end = Math.max(c1, c2);
+                for (let c = start + 1; c < end; c++) {
+                    if (!isPassable(r1, c, targetData)) return false;
+                }
+                return true;
+            } else if (c1 === c2) { 
+                const start = Math.min(r1, r2);
+                const end = Math.max(r1, r2);
+                for (let r = start + 1; r < end; r++) {
+                    if (!isPassable(r, c1, targetData)) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function findPath(start, end) {
+            // 快速检查：如果两个元素值不同，直接返回null
+            if (start.value !== end.value) return null;
+            
+            // 0 turns
+            if (checkLine(start.row, start.col, end.row, end.col, end)) {
+                return [start, end];
+            }
+
+            // 1 turn
+            const corner1 = { row: start.row, col: end.col, id: -1 };
+            if (isPassable(corner1.row, corner1.col, end) &&
+                checkLine(start.row, start.col, corner1.row, corner1.col, end) &&
+                checkLine(corner1.row, corner1.col, end.row, end.col, end)) {
+                return [start, corner1, end];
+            }
+
+            const corner2 = { row: end.row, col: start.col, id: -1 };
+            if (isPassable(corner2.row, corner2.col, end) &&
+                checkLine(start.row, start.col, corner2.row, corner2.col, end) &&
+                checkLine(corner2.row, corner2.col, end.row, end.col, end)) {
+                return [start, corner2, end];
+            }
+
+            // 2 turns - 限制搜索范围，提高性能
+            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            for (let [dr, dc] of directions) {
+                let r = start.row + dr;
+                let c = start.col + dc;
+                let steps = 0;
+                const maxSteps = Math.max(ROWS, COLS) / 2; // 限制搜索步数
+                
+                while (isPassable(r, c, end) && steps < maxSteps) {
+                    const t1 = { row: r, col: c, id: -1 };
+                    
+                    const c1_end = { row: t1.row, col: end.col, id: -1 };
+                    if (isPassable(c1_end.row, c1_end.col, end) &&
+                        checkLine(t1.row, t1.col, c1_end.row, c1_end.col, end) &&
+                        checkLine(c1_end.row, c1_end.col, end.row, end.col, end)) {
+                        return [start, t1, c1_end, end];
+                    }
+
+                    const c2_end = { row: end.row, col: t1.col, id: -1 };
+                    if (isPassable(c2_end.row, c2_end.col, end) &&
+                        checkLine(t1.row, t1.col, c2_end.row, c2_end.col, end) &&
+                        checkLine(c2_end.row, c2_end.col, end.row, end.col, end)) {
+                        return [start, t1, c2_end, end];
+                    }
+
+                    r += dr; c += dc;
+                    steps++;
+                    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
+                }
+            }
+            return null; 
+        }
+
+        function checkWin() {
+            if (matchedCount === gameData.length) {
+                clearInterval(timerInterval);
+                finalTimeElement.textContent = formatTime(elapsedSeconds);
+                
+                // Save high score
+                const isNewHighScore = saveHighScore(score);
+                
+                // 检查是否还有下一个难度级别
+                if (currentDifficulty < categoryOrder.length) {
+                    // 进入下一个难度级别
+                    currentDifficulty++;
+                    // 显示胜利消息后自动进入下一关
+                    setTimeout(() => {
+                        winModal.style.display = 'none';
+                        initGame();
+                    }, 2000);
+                } else {
+                    // 所有难度级别都完成了
+                    winModal.style.display = 'flex';
+                }
+            }
+        }
+
+        // 重新开始游戏，从第一关开始
+        function restartGame() {
+            currentDifficulty = 1; // 重置到第一关
+            currentCategory = 'fruits'; // 重置到水果系列
+            initGame();
+        }
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', initGame);
+        
+        // Initialize the game
+        initGame();
+        
+        // 初始化DOM元素缓存
+        initCellsCache();
+    </script>
+    
+    <!-- 广告容器 -->
+    <div class="ad-container">
+        <!-- 广告内容将在这里显示 -->
+        <div>广告位置</div>
+    </div>
+</body>
+</html>
