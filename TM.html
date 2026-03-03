@@ -283,7 +283,7 @@
         .line-animation {
             stroke-dasharray: 1000;
             stroke-dashoffset: 1000;
-            animation: drawLine 0.25s linear forwards;
+            animation: drawLine 0.5s linear forwards;
         }
         
         @keyframes drawLine {
@@ -465,7 +465,7 @@
             const isMobile = window.innerWidth <= 768;
             if (isMobile) {
                 COLS = 6;
-                ROWS = 10;
+                ROWS = 8;
             } else {
                 COLS = 16;
                 ROWS = 8;
