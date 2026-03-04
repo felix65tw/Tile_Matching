@@ -1024,26 +1024,27 @@
         }
         
         // --- Path finding (optimized) ---
-        function isPassable(r, c, targetData) {
+        function isPassable(r, c, targetData, startData) {
             if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
             const idx = r * COLS + c;
             const cellData = gameData[idx];
-            return cellData.cleared || idx === targetData.id;
+            // 检查是否是目标单元格或起始单元格，或者该单元格已被清除
+            return cellData.cleared || idx === targetData.id || idx === startData.id;
         }
 
-        function checkLine(r1, c1, r2, c2, targetData) {
+        function checkLine(r1, c1, r2, c2, targetData, startData) {
             if (r1 === r2) { 
                 const start = Math.min(c1, c2);
                 const end = Math.max(c1, c2);
                 for (let c = start + 1; c < end; c++) {
-                    if (!isPassable(r1, c, targetData)) return false;
+                    if (!isPassable(r1, c, targetData, startData)) return false;
                 }
                 return true;
             } else if (c1 === c2) { 
                 const start = Math.min(r1, r2);
                 const end = Math.max(r1, r2);
                 for (let r = start + 1; r < end; r++) {
-                    if (!isPassable(r, c1, targetData)) return false;
+                    if (!isPassable(r, c1, targetData, startData)) return false;
                 }
                 return true;
             }
@@ -1055,23 +1056,79 @@
             if (start.value !== end.value) return null;
             
             // 0 turns
-            if (checkLine(start.row, start.col, end.row, end.col, end)) {
+            if (checkLine(start.row, start.col, end.row, end.col, end, start)) {
                 return [start, end];
             }
 
-            // 1 turn
-            const corner1 = { row: start.row, col: end.col, id: -1 };
-            if (isPassable(corner1.row, corner1.col, end) &&
-                checkLine(start.row, start.col, corner1.row, corner1.col, end) &&
-                checkLine(corner1.row, corner1.col, end.row, end.col, end)) {
-                return [start, corner1, end];
-            }
+            // 1 turn - 包括边界外的拐角
+            // 检查边界外的拐角
+            const corners = [
+                // 左上角
+                { row: -1, col: -1, id: -1 },
+                // 右上角
+                { row: -1, col: COLS, id: -1 },
+                // 左下角
+                { row: ROWS, col: -1, id: -1 },
+                // 右下角
+                { row: ROWS, col: COLS, id: -1 },
+                // 左边
+                { row: start.row, col: -1, id: -1 },
+                { row: end.row, col: -1, id: -1 },
+                // 右边
+                { row: start.row, col: COLS, id: -1 },
+                { row: end.row, col: COLS, id: -1 },
+                // 上边
+                { row: -1, col: start.col, id: -1 },
+                { row: -1, col: end.col, id: -1 },
+                // 下边
+                { row: ROWS, col: start.col, id: -1 },
+                { row: ROWS, col: end.col, id: -1 }
+            ];
 
-            const corner2 = { row: end.row, col: start.col, id: -1 };
-            if (isPassable(corner2.row, corner2.col, end) &&
-                checkLine(start.row, start.col, corner2.row, corner2.col, end) &&
-                checkLine(corner2.row, corner2.col, end.row, end.col, end)) {
-                return [start, corner2, end];
+            for (const corner of corners) {
+                // 检查从起点到拐角的路径
+                const canReachCorner = (() => {
+                    if (corner.row === -1) {
+                        // 上边
+                        return start.col === corner.col;
+                    } else if (corner.row === ROWS) {
+                        // 下边
+                        return start.col === corner.col;
+                    } else if (corner.col === -1) {
+                        // 左边
+                        return start.row === corner.row;
+                    } else if (corner.col === COLS) {
+                        // 右边
+                        return start.row === corner.row;
+                    } else {
+                        // 内部拐角
+                        return checkLine(start.row, start.col, corner.row, corner.col, end, start);
+                    }
+                })();
+
+                // 检查从拐角到终点的路径
+                const canReachEnd = (() => {
+                    if (corner.row === -1) {
+                        // 上边
+                        return end.col === corner.col;
+                    } else if (corner.row === ROWS) {
+                        // 下边
+                        return end.col === corner.col;
+                    } else if (corner.col === -1) {
+                        // 左边
+                        return end.row === corner.row;
+                    } else if (corner.col === COLS) {
+                        // 右边
+                        return end.row === corner.row;
+                    } else {
+                        // 内部拐角
+                        return checkLine(corner.row, corner.col, end.row, end.col, end, start);
+                    }
+                })();
+
+                if (canReachCorner && canReachEnd) {
+                    return [start, corner, end];
+                }
             }
 
             // 2 turns - 限制搜索范围，提高性能
@@ -1082,26 +1139,51 @@
                 let steps = 0;
                 const maxSteps = Math.max(ROWS, COLS) / 2; // 限制搜索步数
                 
-                while (isPassable(r, c, end) && steps < maxSteps) {
+                while ((r >= 0 && r < ROWS && c >= 0 && c < COLS) || steps < 2) {
                     const t1 = { row: r, col: c, id: -1 };
                     
+                    // 检查边界外的路径
                     const c1_end = { row: t1.row, col: end.col, id: -1 };
-                    if (isPassable(c1_end.row, c1_end.col, end) &&
-                        checkLine(t1.row, t1.col, c1_end.row, c1_end.col, end) &&
-                        checkLine(c1_end.row, c1_end.col, end.row, end.col, end)) {
+                    const canReachC1 = (() => {
+                        if (t1.col === -1 || t1.col === COLS) {
+                            return t1.col === c1_end.col;
+                        } else {
+                            return checkLine(t1.row, t1.col, c1_end.row, c1_end.col, end, start);
+                        }
+                    })();
+                    const canReachEndFromC1 = (() => {
+                        if (c1_end.col === -1 || c1_end.col === COLS) {
+                            return end.col === c1_end.col;
+                        } else {
+                            return checkLine(c1_end.row, c1_end.col, end.row, end.col, end, start);
+                        }
+                    })();
+                    if (canReachC1 && canReachEndFromC1) {
                         return [start, t1, c1_end, end];
                     }
 
                     const c2_end = { row: end.row, col: t1.col, id: -1 };
-                    if (isPassable(c2_end.row, c2_end.col, end) &&
-                        checkLine(t1.row, t1.col, c2_end.row, c2_end.col, end) &&
-                        checkLine(c2_end.row, c2_end.col, end.row, end.col, end)) {
+                    const canReachC2 = (() => {
+                        if (t1.row === -1 || t1.row === ROWS) {
+                            return t1.row === c2_end.row;
+                        } else {
+                            return checkLine(t1.row, t1.col, c2_end.row, c2_end.col, end, start);
+                        }
+                    })();
+                    const canReachEndFromC2 = (() => {
+                        if (c2_end.row === -1 || c2_end.row === ROWS) {
+                            return end.row === c2_end.row;
+                        } else {
+                            return checkLine(c2_end.row, c2_end.col, end.row, end.col, end, start);
+                        }
+                    })();
+                    if (canReachC2 && canReachEndFromC2) {
                         return [start, t1, c2_end, end];
                     }
 
                     r += dr; c += dc;
                     steps++;
-                    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
+                    if (steps > maxSteps) break;
                 }
             }
             return null; 
