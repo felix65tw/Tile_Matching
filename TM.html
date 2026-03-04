@@ -254,7 +254,7 @@
         /* 手机版设置更大的emoji大小 */
         @media (max-width: 768px) {
             .cell {
-                font-size: 3rem;
+                font-size: 5.4rem; /* 3rem * 1.8 = 5.4rem，增加80% */
             }
         }
 
@@ -419,30 +419,53 @@
     <div class="game-container">
         <h1>Tile Matching Game</h1>
         
-        <div class="game-stats">
-            <div class="stat-box">
-                <div class="stat-label">time:</div>
-                <div class="stat-value" id="time">00:00</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">分数:</div>
-                <div class="stat-value" id="score">0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">最高分:</div>
-                <div class="stat-value" id="highScore">0</div>
+        <!-- 难度选择界面 -->
+        <div class="difficulty-selector" id="difficultySelector" style="display: flex; flex-direction: column; align-items: center; margin: 20px 0;">
+            <h2>选择难度</h2>
+            <div class="difficulty-buttons" style="display: flex; gap: 10px; margin: 10px 0;">
+                <button onclick="selectDifficulty(1)">入门级 (5-8种)</button>
+                <button onclick="selectDifficulty(2)">简单级 (9-12种)</button>
+                <button onclick="selectDifficulty(3)">困难级 (13-16种)</button>
+                <button onclick="selectDifficulty(4)">专家级 (17-20种)</button>
             </div>
         </div>
+        
+        <!-- 游戏界面 -->
+        <div class="game-interface" id="gameInterface" style="display: none;">
+            <div class="game-stats">
+                <div class="stat-box">
+                    <div class="stat-label">time:</div>
+                    <div class="stat-value" id="time">00:00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">分数:</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">最高分:</div>
+                    <div class="stat-value" id="highScore">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">关卡:</div>
+                    <div class="stat-value" id="level">1</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">难度:</div>
+                    <div class="stat-value" id="difficulty">入门级</div>
+                </div>
+            </div>
 
-        <div class="game-area" id="gameArea">
-            <svg id="svg-overlay"></svg>
-            <div class="grid-container" id="gameGrid"></div>
-        </div>
+            <div class="game-area" id="gameArea">
+                <svg id="svg-overlay"></svg>
+                <div class="grid-container" id="gameGrid"></div>
+            </div>
 
-        <div class="controls" style="margin-top: 20px;">
-            <button onclick="restartGame()">重新开始</button>
-            <button onclick="resetItems()" style="margin-left: 10px;">重置</button>
-            <button onclick="useBomb()" style="margin-left: 10px;">炸弹 <span id="bombCount">2</span></button>
+            <div class="controls" style="margin-top: 20px;">
+                <button onclick="restartGame()">重新开始</button>
+                <button onclick="resetItems()" style="margin-left: 10px;">重置</button>
+                <button onclick="useBomb()" style="margin-left: 10px;">炸弹 <span id="bombCount">2</span></button>
+                <button onclick="showDifficultySelector()" style="margin-left: 10px;">选择难度</button>
+            </div>
         </div>
     </div>
 
@@ -484,13 +507,13 @@
         
         // Emoji分类
         const emojiCategories = {
-            fruits: ['🍎', '🍊', '🍋', '🍇', '🍉'],
-            animals: ['🐶', '🐱', '🐭', '🐹', '🐰'],
-            food: ['🍕', '🍔', '🍟', '🌭', '🍿'],
-            ocean: ['🐟', '🐙', '🦀', '🐚', '🌊'],
-            space: ['🚀', '🛸', '🌟', '🪐', '👽'],
-            fantasy: ['🧙‍♂️', '🧚‍♀️', '🐉', '🏰', '💎'],
-            dinosaur: ['🦕', '🦖', '🥚', '🌋', '🌿'],
+            fruits: ['🍎', '🍊', '🍋', '🍇', '🍉', '🍓', '🍒', '🍑', '🍍', '🥥', '🥝', '🍅', '🥑', '🥦', '🥬', '🥒', '🌽', '🥕', '🧄', '🧅'],
+            animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆'],
+            food: ['🍕', '🍔', '🍟', '🌭', '🍿', '🍩', '🍪', '🍫', '🍬', '🍭', '🍮', '🍯', '🍰', '🎂', '🍨', '🍦', '🍧', '🍩', '🍪', '🍫'],
+            ocean: ['🐟', '🐙', '🦀', '🐚', '🌊', '🐢', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🐴', '🦄', '🐝', '🐛'],
+            space: ['🚀', '🛸', '🌟', '🪐', '👽', '🌞', '🌝', '🌛', '🌜', '⭐', '🌟', '🌠', '🌌', '🌙', '🌚', '🌒', '🌓', '🌔', '🌕', '🌖'],
+            fantasy: ['🧙‍♂️', '🧚‍♀️', '🐉', '🏰', '💎', '🧛‍♂️', '🧟‍♂️', '🧞‍♂️', '🧜‍♂️', '🧝‍♂️', '🧙‍♀️', '🧚‍♂️', '🧛‍♀️', '🧟‍♀️', '🧞‍♀️', '🧜‍♀️', '🧝‍♀️', '👑', '⚔️', '🛡️'],
+            dinosaur: ['🦕', '🦖', '🥚', '🌋', '🌿', '🦑', '🦐', '🦞', '🦀', '🐙', '🐚', '🌊', '🐢', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈'],
             random: [] // 随机混合所有emoji
         };
         
@@ -508,24 +531,45 @@
         let startTime = null;
         let timerInterval = null;
         let elapsedSeconds = 0;
-        let currentCategory = 'fruits'; // 默认从水果系列开始
-        let currentDifficulty = 1; // 1-8，对应8个分类
+        let currentLevel = 1; // 当前关卡
+        let selectedDifficulty = 1; // 选中的难度级别
         let bombs = 2; // 初始炸弹数量
         let score = 0; // 当前分数
         let highScore = 0; // 最高分
         
-        // 分类顺序，对应难度级别
-        const categoryOrder = ['fruits', 'animals', 'food', 'ocean', 'space', 'fantasy', 'dinosaur', 'random'];
+        // 分类顺序
+        const categoryOrder = ['fruits', 'animals', 'food', 'ocean', 'space', 'fantasy', 'dinosaur'];
         
-        // 根据难度设置emoji种类数量
-        const getEmojiCountByDifficulty = (difficulty) => {
-            switch(difficulty) {
-                case 1: return 8; // 入门
-                case 2: return 12; // 简单
-                case 3: return 16; // 中等
-                case 4: return 20; // 困难
-                default: return 8;
+        // 根据关卡和难度计算emoji种类数量
+        const getEmojiCountByLevel = (level) => {
+            // 根据难度级别确定起始emoji数量
+            let startCount;
+            switch(selectedDifficulty) {
+                case 1: startCount = 5; break; // 入门级
+                case 2: startCount = 9; break; // 简单级
+                case 3: startCount = 13; break; // 困难级
+                case 4: startCount = 17; break; // 专家级
+                default: startCount = 5;
             }
+            
+            // 每8关增加一种emoji
+            return startCount + Math.floor((level - 1) / 8);
+        };
+        
+        // 根据emoji种类数量计算难度级别
+        const getDifficultyByEmojiCount = (count) => {
+            if (count >= 5 && count <= 8) return '入门级';
+            if (count >= 9 && count <= 12) return '简单级';
+            if (count >= 13 && count <= 16) return '困难级';
+            if (count >= 17 && count <= 20) return '专家级';
+            return '入门级';
+        };
+        
+        // 根据关卡计算当前分类
+        const getCurrentCategory = (level) => {
+            // 循环使用8个分类
+            const categoryIndex = (level - 1) % categoryOrder.length;
+            return categoryOrder[categoryIndex];
         };
 
         // Format time to MM:SS
@@ -593,7 +637,18 @@
             score = 0; // 重置分数
             winModal.style.display = 'none';
             clearTimeout(connectionTimeout);
-            bombs = 2; // 重置炸弹数量
+            
+            // 根据关卡设置炸弹数量
+            const emojiCount = getEmojiCountByLevel(currentLevel);
+            if (emojiCount >= 5 && emojiCount <= 8) {
+                bombs = 3; // 入门级
+            } else if (emojiCount >= 9 && emojiCount <= 12) {
+                bombs = 2; // 简单级
+            } else if (emojiCount >= 13 && emojiCount <= 16) {
+                bombs = 2; // 困难级
+            } else {
+                bombs = 1; // 专家级
+            }
             
             // Reset timer
             if (timerInterval) clearInterval(timerInterval);
@@ -605,29 +660,36 @@
             timeElement.textContent = '00:00';
             scoreElement.textContent = '0';
             
+            // 更新关卡和难度级别显示
+            const levelElement = document.getElementById('level');
+            const difficultyElement = document.getElementById('difficulty');
+            if (levelElement) {
+                levelElement.textContent = currentLevel;
+            }
+            if (difficultyElement) {
+                const emojiCount = getEmojiCountByLevel(currentLevel);
+                difficultyElement.textContent = getDifficultyByEmojiCount(emojiCount);
+            }
+            
             // Load high score
             loadHighScore();
 
-            // 根据难度级别选择对应的emoji分类
-            currentCategory = categoryOrder[currentDifficulty - 1];
+            // 根据当前关卡计算emoji种类数量和分类
+            const currentCategory = getCurrentCategory(currentLevel);
             
             // 生成emoji对
             const availableEmojis = [...emojiCategories[currentCategory]];
             
-            // 确保有足够的emoji来填充网格
-            let selectedEmojis = availableEmojis;
-            if (availableEmojis.length * 2 < TOTAL_CELLS) {
-                // 如果emoji数量不足，重复使用
-                while (selectedEmojis.length * 2 < TOTAL_CELLS) {
-                    selectedEmojis = [...selectedEmojis, ...availableEmojis];
-                }
-            }
+            // 按顺序取前emojiCount个emoji，不随机打乱
+            const selectedEmojis = availableEmojis.slice(0, emojiCount);
             
             // 生成配对
             const pairs = [];
+            let emojiIndex = 0;
             while (pairs.length < TOTAL_CELLS) {
-                const randomEmoji = selectedEmojis[Math.floor(Math.random() * selectedEmojis.length)];
-                pairs.push(randomEmoji, randomEmoji);
+                const currentEmoji = selectedEmojis[emojiIndex % selectedEmojis.length];
+                pairs.push(currentEmoji, currentEmoji);
+                emojiIndex++;
             }
 
             // 打乱配对
@@ -1048,34 +1110,50 @@
                 // Save high score
                 const isNewHighScore = saveHighScore(score);
                 
-                // 检查是否还有下一个难度级别
-                if (currentDifficulty < categoryOrder.length) {
-                    // 进入下一个难度级别
-                    currentDifficulty++;
+                // 检查是否还有下一关
+                if (currentLevel < 128) {
+                    // 进入下一关
+                    currentLevel++;
                     // 显示胜利消息后自动进入下一关
                     setTimeout(() => {
                         winModal.style.display = 'none';
                         initGame();
                     }, 2000);
                 } else {
-                    // 所有难度级别都完成了
+                    // 所有关卡都完成了
                     winModal.style.display = 'flex';
                 }
             }
         }
+        
+        // 选择难度
+        function selectDifficulty(difficulty) {
+            selectedDifficulty = difficulty;
+            currentLevel = 1; // 重置到第一关
+            
+            // 隐藏难度选择界面，显示游戏界面
+            document.getElementById('difficultySelector').style.display = 'none';
+            document.getElementById('gameInterface').style.display = 'block';
+            
+            // 初始化游戏
+            initGame();
+        }
+        
+        // 显示难度选择界面
+        function showDifficultySelector() {
+            // 隐藏游戏界面，显示难度选择界面
+            document.getElementById('gameInterface').style.display = 'none';
+            document.getElementById('difficultySelector').style.display = 'flex';
+        }
 
         // 重新开始游戏，从第一关开始
         function restartGame() {
-            currentDifficulty = 1; // 重置到第一关
-            currentCategory = 'fruits'; // 重置到水果系列
+            currentLevel = 1; // 重置到第一关
             initGame();
         }
 
         // 监听窗口大小变化
         window.addEventListener('resize', initGame);
-        
-        // Initialize the game
-        initGame();
         
         // 初始化DOM元素缓存
         initCellsCache();
