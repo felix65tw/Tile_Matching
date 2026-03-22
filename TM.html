@@ -254,7 +254,7 @@
         /* 手机版设置更大的emoji大小 */
         @media (max-width: 768px) {
             .cell {
-                font-size: 5.4rem !important; /* 3rem * 1.8 = 5.4rem，增加80% */
+                font-size: 3rem !important; /* 3rem * 1.8 = 5.4rem，增加80% */
             }
             
             /* 手机版隐藏time显示 */
@@ -879,16 +879,17 @@
                 matchedCount += 2;
                 selectedIndex = null;
                 checkWin();
-            }, 250); // 與動畫時間一致
+            }, 500); // 與動畫時間一致
         }
 
         function drawAnimatedPath(pathPoints, idx1, idx2) {
             if (!pathPoints || pathPoints.length < 2) return;
 
             const gameAreaRect = document.getElementById('gameArea').getBoundingClientRect();
+            const cells = document.querySelectorAll('.cell');
             
             const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--grid-gap')) || 10;
-            const refCell = cellsCache[0];
+            const refCell = cells[0];
             const cellW = refCell.offsetWidth;
             const cellH = refCell.offsetHeight;
             const padding = gap;
@@ -1023,28 +1024,26 @@
             cellsCache = Array.from(document.querySelectorAll('.cell'));
         }
         
-        // --- Path finding (optimized) ---
-        function isPassable(r, c, targetData, startData) {
+        // --- Path finding (unchanged) ---
+        function isPassable(r, c, targetData) {
             if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
             const idx = r * COLS + c;
-            const cellData = gameData[idx];
-            // 检查是否是目标单元格或起始单元格，或者该单元格已被清除
-            return cellData.cleared || idx === targetData.id || idx === startData.id;
+            return gameData[idx].cleared || idx === targetData.id;
         }
 
-        function checkLine(r1, c1, r2, c2, targetData, startData) {
+        function checkLine(r1, c1, r2, c2, targetData) {
             if (r1 === r2) { 
                 const start = Math.min(c1, c2);
                 const end = Math.max(c1, c2);
                 for (let c = start + 1; c < end; c++) {
-                    if (!isPassable(r1, c, targetData, startData)) return false;
+                    if (!isPassable(r1, c, targetData)) return false;
                 }
                 return true;
             } else if (c1 === c2) { 
                 const start = Math.min(r1, r2);
                 const end = Math.max(r1, r2);
                 for (let r = start + 1; r < end; r++) {
-                    if (!isPassable(r, c1, targetData, startData)) return false;
+                    if (!isPassable(r, c1, targetData)) return false;
                 }
                 return true;
             }
@@ -1056,134 +1055,49 @@
             if (start.value !== end.value) return null;
             
             // 0 turns
-            if (checkLine(start.row, start.col, end.row, end.col, end, start)) {
+            if (checkLine(start.row, start.col, end.row, end.col, end)) {
                 return [start, end];
             }
 
-            // 1 turn - 包括边界外的拐角
-            // 检查边界外的拐角
-            const corners = [
-                // 左上角
-                { row: -1, col: -1, id: -1 },
-                // 右上角
-                { row: -1, col: COLS, id: -1 },
-                // 左下角
-                { row: ROWS, col: -1, id: -1 },
-                // 右下角
-                { row: ROWS, col: COLS, id: -1 },
-                // 左边
-                { row: start.row, col: -1, id: -1 },
-                { row: end.row, col: -1, id: -1 },
-                // 右边
-                { row: start.row, col: COLS, id: -1 },
-                { row: end.row, col: COLS, id: -1 },
-                // 上边
-                { row: -1, col: start.col, id: -1 },
-                { row: -1, col: end.col, id: -1 },
-                // 下边
-                { row: ROWS, col: start.col, id: -1 },
-                { row: ROWS, col: end.col, id: -1 }
-            ];
-
-            for (const corner of corners) {
-                // 检查从起点到拐角的路径
-                const canReachCorner = (() => {
-                    if (corner.row === -1) {
-                        // 上边
-                        return start.col === corner.col;
-                    } else if (corner.row === ROWS) {
-                        // 下边
-                        return start.col === corner.col;
-                    } else if (corner.col === -1) {
-                        // 左边
-                        return start.row === corner.row;
-                    } else if (corner.col === COLS) {
-                        // 右边
-                        return start.row === corner.row;
-                    } else {
-                        // 内部拐角
-                        return checkLine(start.row, start.col, corner.row, corner.col, end, start);
-                    }
-                })();
-
-                // 检查从拐角到终点的路径
-                const canReachEnd = (() => {
-                    if (corner.row === -1) {
-                        // 上边
-                        return end.col === corner.col;
-                    } else if (corner.row === ROWS) {
-                        // 下边
-                        return end.col === corner.col;
-                    } else if (corner.col === -1) {
-                        // 左边
-                        return end.row === corner.row;
-                    } else if (corner.col === COLS) {
-                        // 右边
-                        return end.row === corner.row;
-                    } else {
-                        // 内部拐角
-                        return checkLine(corner.row, corner.col, end.row, end.col, end, start);
-                    }
-                })();
-
-                if (canReachCorner && canReachEnd) {
-                    return [start, corner, end];
-                }
+            // 1 turn
+            const corner1 = { row: start.row, col: end.col, id: -1 }; 
+            if (isPassable(corner1.row, corner1.col, end) &&
+                checkLine(start.row, start.col, corner1.row, corner1.col, end) &&
+                checkLine(corner1.row, corner1.col, end.row, end.col, end)) {
+                return [start, corner1, end];
             }
 
-            // 2 turns - 限制搜索范围，提高性能
+            const corner2 = { row: end.row, col: start.col, id: -1 };
+            if (isPassable(corner2.row, corner2.col, end) &&
+                checkLine(start.row, start.col, corner2.row, corner2.col, end) &&
+                checkLine(corner2.row, corner2.col, end.row, end.col, end)) {
+                return [start, corner2, end];
+            }
+
+            // 2 turns
             const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
             for (let [dr, dc] of directions) {
                 let r = start.row + dr;
                 let c = start.col + dc;
-                let steps = 0;
-                const maxSteps = Math.max(ROWS, COLS) / 2; // 限制搜索步数
-                
-                while ((r >= 0 && r < ROWS && c >= 0 && c < COLS) || steps < 2) {
+                while (isPassable(r, c, end)) {
                     const t1 = { row: r, col: c, id: -1 };
                     
-                    // 检查边界外的路径
                     const c1_end = { row: t1.row, col: end.col, id: -1 };
-                    const canReachC1 = (() => {
-                        if (t1.col === -1 || t1.col === COLS) {
-                            return t1.col === c1_end.col;
-                        } else {
-                            return checkLine(t1.row, t1.col, c1_end.row, c1_end.col, end, start);
-                        }
-                    })();
-                    const canReachEndFromC1 = (() => {
-                        if (c1_end.col === -1 || c1_end.col === COLS) {
-                            return end.col === c1_end.col;
-                        } else {
-                            return checkLine(c1_end.row, c1_end.col, end.row, end.col, end, start);
-                        }
-                    })();
-                    if (canReachC1 && canReachEndFromC1) {
+                    if (isPassable(c1_end.row, c1_end.col, end) &&
+                        checkLine(t1.row, t1.col, c1_end.row, c1_end.col, end) &&
+                        checkLine(c1_end.row, c1_end.col, end.row, end.col, end)) {
                         return [start, t1, c1_end, end];
                     }
 
                     const c2_end = { row: end.row, col: t1.col, id: -1 };
-                    const canReachC2 = (() => {
-                        if (t1.row === -1 || t1.row === ROWS) {
-                            return t1.row === c2_end.row;
-                        } else {
-                            return checkLine(t1.row, t1.col, c2_end.row, c2_end.col, end, start);
-                        }
-                    })();
-                    const canReachEndFromC2 = (() => {
-                        if (c2_end.row === -1 || c2_end.row === ROWS) {
-                            return end.row === c2_end.row;
-                        } else {
-                            return checkLine(c2_end.row, c2_end.col, end.row, end.col, end, start);
-                        }
-                    })();
-                    if (canReachC2 && canReachEndFromC2) {
+                    if (isPassable(c2_end.row, c2_end.col, end) &&
+                        checkLine(t1.row, t1.col, c2_end.row, c2_end.col, end) &&
+                        checkLine(c2_end.row, c2_end.col, end.row, end.col, end)) {
                         return [start, t1, c2_end, end];
                     }
 
                     r += dr; c += dc;
-                    steps++;
-                    if (steps > maxSteps) break;
+                    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) break;
                 }
             }
             return null; 
